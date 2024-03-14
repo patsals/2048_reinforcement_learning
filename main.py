@@ -22,24 +22,20 @@ if __name__ == '__main__':
         score = 0
         done = False
         observation = game.reset()
-        #print(i)
         while not done:
             action = agent.choose_action(observation)
-            #print(action)
             observation_new, reward, done, game_score = game.step(action)
             score += reward
-            #print(observation, action, reward, observation_new, done)
             agent.store_transition(observation, action, reward, observation_new, done)
             agent.learn()
             observation = observation_new
 
         game_scores.append(game_score)
         if i % 10 == 0:
-            print(f'episode {i} | game_score: {game_score}')
+            print(f'episode {i} | total reward score: {score} | game_score: {game_score}')
             #print(game_score, done)
 
             #time.sleep(0.1)
     #game_thread.join()
     game.terminate()
     plot_game_scores(game_scores)
-    print(score)

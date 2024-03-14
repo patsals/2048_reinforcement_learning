@@ -38,14 +38,15 @@ class Game(tk.Frame):
         # self.master.bind('<Down>', self.down)
 
         self.action_to_movement = {0: self.left, 1: self.right, 2: self.up, 3: self.down}
-        self.rewards = {'won': 1, 'lost':0}
+        self.rewards = {'won': 100, 'lost':0}
         self.game_status = None
         self.matrix = None
         self.state = None
 
 
-    def get_observation(self):
-        return {'agent': self.score, 'target':2048}
+
+    # def get_observation(self):
+    #     return {'agent': self.score, 'target':2048}
     
     def reset(self):
         self.matrix = np.zeros((4,4),dtype=int)
@@ -69,6 +70,7 @@ class Game(tk.Frame):
         )
 
         self.score = 0
+        self.prev_score = 0
         self.game_status = None
         self.state = self.matrix.flatten()
         #observation = self.get_observation()
@@ -87,6 +89,7 @@ class Game(tk.Frame):
         else:
             reward = 0
 
+        reward += self.score - self.prev_score
         #observation = self.get_observation()
 
         return np.array(self.state, dtype=np.float32), reward, terminated, self.score
@@ -147,6 +150,7 @@ class Game(tk.Frame):
         # self.matrix[diff_mat==0] *= 2
         # self.matrix[np.roll(diff_mat,1,axis=1)==0] = 0
         # self.score += sum(self.matrix[diff_mat==0])
+        self.prev_score = self.score
         for i in range(4):
             for j in range(3):
                 if self.matrix[i][j] != 0 and self.matrix[i][j] == self.matrix[i][j+1]:
