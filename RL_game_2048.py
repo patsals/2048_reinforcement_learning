@@ -1,11 +1,7 @@
+# RL environment guide at: https://www.gymlibrary.dev/content/environment_creation/
+# GUI/game tutorial at: https://www.youtube.com/watch?v=b4XP2IcI-Bg
 import tkinter as tk
 import numpy as np
-# tutorial at: https://www.youtube.com/watch?v=b4XP2IcI-Bg
-
-
-# reset function: after each game our agent should be able to reset the game
-# reward: reward our agent gets
-# play(action) -> computes mov
 
 class Game(tk.Frame):
 
@@ -34,15 +30,63 @@ class Game(tk.Frame):
 
         self.main_grid.grid(pady=(100,0))
         self.make_GUI()
-        self.start_game()
+        self.reset()
 
-        self.master.bind('<Left>', self.left)
-        self.master.bind('<Right>', self.right)
-        self.master.bind('<Up>', self.up)
-        self.master.bind('<Down>', self.down)
+        # self.master.bind('<Left>', self.left)
+        # self.master.bind('<Right>', self.right)
+        # self.master.bind('<Up>', self.up)
+        # self.master.bind('<Down>', self.down)
 
-        self.mainloop()
+        self.action_to_movement = {0: self.left, 1: self.right, 2: self.up, 3: self.down}
+        self.rewards = {'won': 1, 'lost':0}
+        self.game_status = None
+
+
+    def get_observation(self):
+        return {'agent': self.score, 'target':2048}
     
+    def reset(self):
+        self.matrix = np.zeros((4,4),dtype=int)
+
+        # fill 2 random cells
+        ind = np.random.choice(range(16),2,replace=False)
+        row = ind//4
+        col = ind%4
+        self.matrix[row[0]][col[0]] = 2
+        self.matrix[row[1]][col[1]] = 2
+        self.cells[row[0]][col[0]]['frame'].configure(bg=self.get_color(2))
+        self.cells[row[0]][col[0]]['number'].configure(
+            bg=self.NUM_COLORS[2],
+            text='2'
+        )
+        self.cells[row[1]][col[1]]['frame'].configure(bg=self.get_color(2))
+        self.cells[row[1]][col[1]]['number'].configure(
+            bg=self.NUM_COLORS[2],
+            text='2'
+        )
+
+        self.score = 0
+        self.game_status = None
+        observation = self.get_observation()
+
+        return observation
+    
+   
+    def step(self, action):
+        movement = self.action_to_movement[action]
+
+        # an episode is done if can no longer play anymore
+        terminated = self.game_over()
+        if terminated:
+            reward = self.rewards[self.game_status]
+        else:
+            reward = 0
+            
+        observation = self.get_observation()
+
+        return observation, reward, terminated
+
+
     def get_color(self, val):
         return self.NUM_COLORS[val] if val in self.NUM_COLORS else 'tan'
 
@@ -75,27 +119,7 @@ class Game(tk.Frame):
         self.score_label = tk.Label(score_frame, text='0', font=("Arial", 12))
         self.score_label.grid(row=1)
 
-    def start_game(self):
-        self.matrix = np.zeros((4,4),dtype=int)
-
-        # fill 2 random cells
-        ind = np.random.choice(range(16),2,replace=False)
-        row = ind//4
-        col = ind%4
-        self.matrix[row[0]][col[0]] = 2
-        self.matrix[row[1]][col[1]] = 2
-        self.cells[row[0]][col[0]]['frame'].configure(bg=self.get_color(2))
-        self.cells[row[0]][col[0]]['number'].configure(
-            bg=self.NUM_COLORS[2],
-            text='2'
-        )
-        self.cells[row[1]][col[1]]['frame'].configure(bg=self.get_color(2))
-        self.cells[row[1]][col[1]]['number'].configure(
-            bg=self.NUM_COLORS[2],
-            text='2'
-        )
-
-        self.score = 0
+    
 
 
     def stack(self):
@@ -209,24 +233,29 @@ class Game(tk.Frame):
     # check if game is over win/lose
     def game_over(self):
         if np.any(self.matrix==2048):
-            game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
-            game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
-            tk.Label(
-                game_over_frame,
-                text='you win!'
-            ).pack()
+            # game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
+            # game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
+            # tk.Label(
+            #     game_over_frame,
+            #     text='you win!'
+            # ).pack()
+            print(f'game over| WON with score of {self.score}')
+            self.game_status = 'won'
+            return True
+
         elif not np.any(self.matrix==0) and not self.vertical_move_exists() and not self.horizontal_move_exists():
-            game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
-            game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
-            tk.Label(
-                game_over_frame,
-                text='game over!'
-            ).pack()
+            # game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
+            # game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
+            # tk.Label(
+            #     game_over_frame,
+            #     text='game over!'
+            # ).pack()
+            print(f'game over| LOST with score of {self.score}')
+            self.game_status = 'lost'
+            return True
+        
+        return False
 
 
-def main():
-    Game()
-
-
-if __name__ == '__main__':
-    main()
+    def play(self):
+        self.mainloop()
