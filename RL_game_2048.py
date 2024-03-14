@@ -40,6 +40,8 @@ class Game(tk.Frame):
         self.action_to_movement = {0: self.left, 1: self.right, 2: self.up, 3: self.down}
         self.rewards = {'won': 1, 'lost':0}
         self.game_status = None
+        self.matrix = None
+        self.state = None
 
 
     def get_observation(self):
@@ -47,6 +49,7 @@ class Game(tk.Frame):
     
     def reset(self):
         self.matrix = np.zeros((4,4),dtype=int)
+        
 
         # fill 2 random cells
         ind = np.random.choice(range(16),2,replace=False)
@@ -67,13 +70,15 @@ class Game(tk.Frame):
 
         self.score = 0
         self.game_status = None
-        observation = self.get_observation()
+        self.state = self.matrix.flatten()
+        #observation = self.get_observation()
 
-        return observation
+        return np.array(self.state, dtype=np.float32)
     
    
     def step(self, action):
         movement = self.action_to_movement[action]
+        movement(None)
 
         # an episode is done if can no longer play anymore
         terminated = self.game_over()
@@ -81,10 +86,10 @@ class Game(tk.Frame):
             reward = self.rewards[self.game_status]
         else:
             reward = 0
-            
-        observation = self.get_observation()
 
-        return observation, reward, terminated
+        #observation = self.get_observation()
+
+        return np.array(self.state, dtype=np.float32), reward, terminated, self.score
 
 
     def get_color(self, val):
@@ -133,6 +138,7 @@ class Game(tk.Frame):
                     fill_position += 1
                     ret = True
         self.matrix = new_matrix
+        self.state = self.matrix.flatten()
         return ret
 
     def combine(self):
@@ -148,6 +154,7 @@ class Game(tk.Frame):
                     self.matrix[i][j+1] = 0
                     self.score += self.matrix[i][j]
                     ret = True
+        self.state = self.matrix.flatten()
         return ret
 
     def reverse(self):
@@ -163,6 +170,7 @@ class Game(tk.Frame):
             row = ind//4
             col = ind%4
             self.matrix[row][col] = np.random.choice([2,4],p=[0.9,0.1])
+        self.state = self.matrix.flatten()
 
 
     def update_GUI(self):
@@ -239,7 +247,7 @@ class Game(tk.Frame):
             #     game_over_frame,
             #     text='you win!'
             # ).pack()
-            print(f'game over| WON with score of {self.score}')
+            #print(f'game over| WON with score of {self.score}')
             self.game_status = 'won'
             return True
 
@@ -250,7 +258,7 @@ class Game(tk.Frame):
             #     game_over_frame,
             #     text='game over!'
             # ).pack()
-            print(f'game over| LOST with score of {self.score}')
+            #print(f'game over| LOST with score of {self.score}')
             self.game_status = 'lost'
             return True
         
@@ -259,3 +267,6 @@ class Game(tk.Frame):
 
     def play(self):
         self.mainloop()
+
+    def terminate(self):
+        self.master.destroy()
