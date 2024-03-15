@@ -1,6 +1,7 @@
 from RL_game_2048 import Game
 from DeepQNetwork import Agent
 from util import plot_game_scores
+import torch
 
 from threading import Thread
 import time
@@ -28,7 +29,7 @@ def train(game):
 
 if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
-                eps_end=0.01, eps_dec=0.01, input_dims=[16], lr=0.03)
+                eps_end=0.01, eps_dec=0.01, input_dims=[16], lr=0.03, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'))
 
     n_games = 500
     game = Game()
