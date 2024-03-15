@@ -44,7 +44,7 @@ class Agent():
         self.eps_dec = eps_dec
 
         self.action_space = [i for i in range(n_actions)]
-        self.mem_counter = 0 #keeps track of first available memory for agent
+        self.mem_counter = 0 
         self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims,
                                   fc1_dims=256, fc2_dims=256)
 
@@ -74,6 +74,7 @@ class Agent():
 
         return action
     
+
     def learn(self):
         if self.mem_counter < self.batch_size:
             return

@@ -8,7 +8,7 @@ import time
 
 if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
-                eps_end=0.01, input_dims=[16], lr=0.003)
+                eps_end=0.01, eps_dec=0.01, input_dims=[16], lr=0.03)
 
     n_games = 500
     game = Game()

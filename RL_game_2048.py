@@ -2,6 +2,8 @@
 # GUI/game tutorial at: https://www.youtube.com/watch?v=b4XP2IcI-Bg
 import tkinter as tk
 import numpy as np
+import matplotlib.pyplot as plt 
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class Game(tk.Frame):
 
@@ -29,8 +31,7 @@ class Game(tk.Frame):
         )
 
         self.main_grid.grid(pady=(100,0))
-        self.make_GUI()
-        self.reset()
+        
 
         # self.master.bind('<Left>', self.left)
         # self.master.bind('<Right>', self.right)
@@ -43,6 +44,12 @@ class Game(tk.Frame):
         self.matrix = None
         self.state = None
 
+        self.show_plot = True
+        self.scores = []
+        self.highest_tiles = []
+
+        self.make_GUI()
+        self.reset()
 
 
     # def get_observation(self):
@@ -69,12 +76,21 @@ class Game(tk.Frame):
             text='2'
         )
 
+        if len(self.scores) == 0:
+            self.scores.append(0)
+            self.highest_tiles.append(0)
+        elif self.score != 0:
+            self.scores.append(self.score)
+            self.highest_tiles.append(max(self.state))
+        
         self.score = 0
         self.prev_score = 0
         self.game_status = None
         self.state = self.matrix.flatten()
         #observation = self.get_observation()
-
+        
+        self.update_line_plot()
+        self.update_histogram_plot()
         return np.array(self.state, dtype=np.float32)
     
    
@@ -82,15 +98,24 @@ class Game(tk.Frame):
         movement = self.action_to_movement[action]
         movement(None)
 
+        ##################
+        #### REWARDS #####
+        ##################
         # an episode is done if can no longer play anymore
         terminated = self.game_over()
-        if terminated:
-            reward = self.rewards[self.game_status]
-        else:
-            reward = 0
+        # if terminated:
+        #     reward = self.rewards[self.game_status]
+        # else:
+        #     reward = 0
 
-        reward += self.score - self.prev_score
-        #observation = self.get_observation()
+        reward = 0
+
+        highest_tile = np.max(self.matrix)
+        if highest_tile not in [self.matrix[0][0], self.matrix[0][3], self.matrix[3][0], self.matrix[0][3]]:
+            reward -= 100
+        else:
+            #reward += self.score - self.prev_score
+            reward += 100
 
         return np.array(self.state, dtype=np.float32), reward, terminated, self.score
 
@@ -117,17 +142,44 @@ class Game(tk.Frame):
             self.cells.append(row)
 
         score_frame = tk.Frame(self)
-        score_frame.place(relx=0.5, y=45, anchor='center')
+        score_frame.place(relx=0.25, y=45, anchor='center')
         tk.Label(
             score_frame,
             text='Score',
-            font='black'
+            font=("Arial bold", 40)
         ).grid(row=0)
 
-        self.score_label = tk.Label(score_frame, text='0', font=("Arial", 12))
+        self.score_label = tk.Label(score_frame, text='0', font=("Arial bold", 20))
         self.score_label.grid(row=1)
 
-    
+        if self.show_plot:
+            self.fig, self.ax = plt.subplots(2, figsize=(3, 4))
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+            self.canvas_widget = self.canvas.get_tk_widget()
+            self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=20, pady=20)
+
+            self.update_line_plot()
+            self.update_histogram_plot()
+            
+
+    def update_line_plot(self):
+        self.ax[0].clear()
+        self.ax[0].plot(self.scores)
+        self.ax[0].set_title('Game scores over episodes', fontsize=6)
+        #self.ax[0].set_xlabel('episode', fontsize=5)
+        self.ax[0].set_ylabel('game score', fontsize=5)
+        self.ax[0].tick_params(axis='both', labelsize=3)
+        self.canvas.draw()
+
+    def update_histogram_plot(self):
+        self.ax[1].clear()
+        self.ax[1].hist(self.highest_tiles, color='blue')
+        self.ax[1].set_title('Highest Tile Distribution', fontsize=6)
+        #self.ax[1].set_xlabel('Score', fontsize=5)
+        self.ax[1].set_ylabel('Count', fontsize=5)
+        self.ax[1].tick_params(axis='both', labelsize=3)
+        self.canvas.draw()
+
 
 
     def stack(self):
