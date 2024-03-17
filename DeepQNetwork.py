@@ -23,9 +23,9 @@ class DeepQNetwork(nn.Module):
     def forward(self, state):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        actions = F.softmax(self.fc3(x))
+        actions = self.fc3(x)
 
-        return actions 
+        return actions
     
 
 class Agent():
@@ -68,8 +68,11 @@ class Agent():
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
             state = torch.tensor([observation]).to(self.device)
-            actions = self.Q_eval.forward(state)
-            action = torch.argmax(actions).item()
+            with torch.no_grad(): actions = self.Q_eval.forward(state)
+            amin = torch.min(actions).item()
+            amax = torch.max(actions).item()
+            p = (actions - amin)/(amax - amin)
+            action = torch.arange(actions.size(dim=-1)).to(self.device)[p.multinomial(num_samples=1).item()].item()
         else:
             action = np.random.choice(self.action_space)
 
@@ -90,10 +93,11 @@ class Agent():
         new_state_batch = torch.tensor(self.new_state_memory[batch]).to(self.device)
         reward_batch = torch.tensor(self.reward_memory[batch]).to(self.device)
         terminal_batch = torch.tensor(self.terminal_memory[batch]).to(self.device)
-
+        
         action_batch = self.action_memory[batch]
         q_eval = self.Q_eval.forward(state_batch)[batch_index, action_batch]
         q_next = self.Q_eval.forward(new_state_batch)
+        q_next = torch.clone(q_next)
         q_next[terminal_batch] = 0.0
         q_target = reward_batch + self.gamma * torch.max(q_next, dim=1)[0]
 

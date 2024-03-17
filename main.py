@@ -31,7 +31,7 @@ if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
                 eps_end=0.01, eps_dec=0.01, input_dims=[16], lr=0.03, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'))
 
-    n_games = 500
+    n_games = 5000
     game = Game()
 
     train_thread = Thread(target=lambda : train(game))
