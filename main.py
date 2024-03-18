@@ -11,13 +11,14 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 game_scores = []
 
 def train(game):
+    total_reward = 0
     for i in range(n_games):
         score = 0
         no_motion_ctr = 0
         done = False
         observation = game.reset()
         while not done:
-            greedy_action, min_action = simulate(observation, 5, 5)
+            greedy_action, min_action = simulate(observation, 7, 50)
             
             if (no_motion_ctr >= 10): # 10 is a random var i chose
                 action = min_action
@@ -27,19 +28,21 @@ def train(game):
 
             observation_new, reward, done, game_score = game.step(action)
             score += reward
-            agent.store_transition(observation, action, reward, observation_new, done)
+            running_avg_reward = total_reward / (i + 1)
+            agent.store_transition(observation, action, (reward - running_avg_reward), observation_new, done)
             agent.learn()
             # agent.update_epsilon(game.prev_score, game.score)
             observation = observation_new
 
             if (game.prev_score == game.score):
                 no_motion_ctr += 1
-
+        
+        total_reward += reward
         game_scores.append(game_score)
-        if i % 10 == 0:
+        if i % 20 == 0:
             print(f'episode {i} | total reward score: {score} | game_score: {game_score}')
 
-        # torch.save(agent.Q_eval, 'latest_model.pt')
+        torch.save(agent.Q_eval, 'latest_model_running_avg_loss.pt')
 
 
 def simulate(observation, num_simulations, num_steps_ahead):
