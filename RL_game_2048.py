@@ -7,7 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class Game(tk.Frame):
 
-    def __init__(self):
+    def __init__(self, argState=None):
         tk.Frame.__init__(self)
         self.grid()
         self.master.title("2048")
@@ -31,17 +31,11 @@ class Game(tk.Frame):
         )
 
         self.main_grid.grid(pady=(100,0))
-        
-
-        # self.master.bind('<Left>', self.left)
-        # self.master.bind('<Right>', self.right)
-        # self.master.bind('<Up>', self.up)
-        # self.master.bind('<Down>', self.down)
 
         self.action_to_movement = {0: self.left, 1: self.right, 2: self.up, 3: self.down}
         self.rewards = {'won': 100, 'lost':0}
         self.game_status = None
-        self.matrix = None
+        self.matrix = argState
         self.state = None
 
         self.show_plot = True
@@ -54,16 +48,13 @@ class Game(tk.Frame):
         self.ep_reward = 0
         self.plot_flag = False
 
-        self.make_GUI()
-        self.reset()
-
+        if (argState is None):
+            self.make_GUI()
+            self.reset()
+       
         self.plot_flag = True
-
-
-    # def get_observation(self):
-    #     return {'agent': self.score, 'target':2048}
     
-    def reset(self):
+    def reset(self, sim=False):
         self.matrix = np.zeros((4,4),dtype=int)
         
 
@@ -106,6 +97,7 @@ class Game(tk.Frame):
     
    
     def step(self, action):
+
         movement = self.action_to_movement[action]
         movement(None)
 
@@ -114,11 +106,6 @@ class Game(tk.Frame):
         ##################
         # an episode is done if can no longer play anymore
         terminated = self.game_over()
-        # if terminated:
-        #     reward = self.rewards[self.game_status]
-        # else:
-        #     reward = 0
-
         reward = 0
 
         highest_tile = np.max(self.matrix)
@@ -130,6 +117,8 @@ class Game(tk.Frame):
         self.prev_highest_tile = highest_tile
 
         self.ep_reward += reward
+
+        # self.prev_matrix = self.matrix
 
         return np.array(self.state, dtype=np.float32), reward, terminated, self.score
 
@@ -220,10 +209,6 @@ class Game(tk.Frame):
 
     def combine(self):
         ret = False
-        # diff_mat = np.hstack((self.matrix[:,:3] - self.matrix[:,1:], np.ones((4,1),dtype=int)))
-        # self.matrix[diff_mat==0] *= 2
-        # self.matrix[np.roll(diff_mat,1,axis=1)==0] = 0
-        # self.score += sum(self.matrix[diff_mat==0])
         self.prev_score = self.score
         for i in range(4):
             for j in range(3):
