@@ -30,7 +30,6 @@ def train(game):
             score += reward
             running_avg_reward = total_reward / (i + 1)
             agent.store_transition(observation, action, (reward - running_avg_reward), observation_new, done)
-            agent.learn()
             # agent.update_epsilon(game.prev_score, game.score)
             observation = observation_new
 
@@ -38,6 +37,7 @@ def train(game):
                 no_motion_ctr += 1
         
         total_reward += reward
+        agent.learn()
         game_scores.append(game_score)
         if i % 20 == 0:
             print(f'episode {i} | total reward score: {score} | game_score: {game_score}')
