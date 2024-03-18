@@ -1,5 +1,5 @@
 from RL_game_2048 import Game
-from DeepQNetwork import Agent
+from DeepQNetwork2 import Agent
 from util import plot_game_scores
 
 from threading import Thread
@@ -19,7 +19,6 @@ def train(game):
             agent.store_transition(observation, action, reward, observation_new, done)
             agent.learn()
             observation = observation_new
-
         game_scores.append(game_score)
         if i % 10 == 0:
             print(f'episode {i} | total reward score: {score} | game_score: {game_score}')
@@ -28,9 +27,9 @@ def train(game):
 
 if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
-                eps_end=0.01, eps_dec=0.01, input_dims=[16], lr=0.03)
+                eps_end=0.01, input_dims=[16, 4, 4], lr=0.01)
 
-    n_games = 500
+    n_games = 1000
     game = Game()
 
     train_thread = Thread(target=lambda : train(game))

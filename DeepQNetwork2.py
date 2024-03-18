@@ -5,32 +5,43 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
+class ConvBlock(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(ConvBlock, self).__init__()
+        d = output_dim // 4
+        self.conv1 = nn.Conv2d(input_dim, d, 1, padding='same')
+        self.conv2 = nn.Conv2d(input_dim, d, 2, padding='same')
+        self.conv3 = nn.Conv2d(input_dim, d, 3, padding='same')
+        self.conv4 = nn.Conv2d(input_dim, d, 4, padding='same')
+
+    def forward(self, x):
+        output1 = self.conv1(x)
+        output2 = self.conv2(x)
+        output3 = self.conv3(x)
+        output4 = self.conv4(x)
+        return torch.cat((output1, output2, output3, output4), dim=1)
+
 class DeepQNetwork(nn.Module):
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
+    def __init__(self, lr):
         super(DeepQNetwork, self).__init__()
-        self.input_dims = input_dims
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.n_actions = n_actions
-
-        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
-        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.fc3 = nn.Linear(self.fc2_dims, self.fc2_dims)
-
-        self.fc4 = nn.Linear(self.fc2_dims, self.n_actions)
-
-        self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
+        self.conv1 = ConvBlock(16, 2048)
+        self.conv2 = ConvBlock(2048, 2048)
+        self.conv3 = ConvBlock(2048, 2048)
+        self.dense1 = nn.Linear(2048 * 16, 1024)
+        self.dense6 = nn.Linear(1024, 4)
 
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        actions = self.fc4(x)
-
-        return actions 
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        self.loss = nn.MSELoss()
+    
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = nn.Flatten()(x)
+        x = F.dropout(self.dense1(x))
+        return self.dense6(x)
     
 
 class Agent():
@@ -48,11 +59,10 @@ class Agent():
 
         self.action_space = [i for i in range(n_actions)]
         self.mem_counter = 0 
-        self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims,
-                                  fc1_dims=256, fc2_dims=256)
+        self.Q_eval = DeepQNetwork(self.lr)
 
-        self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
-        self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
+        self.state_memory = torch.zeros((self.mem_size, *input_dims), dtype=torch.float32)
+        self.new_state_memory = torch.zeros((self.mem_size, *input_dims), dtype=torch.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
         self.reward_memory = np.zeros(self.mem_size, dtype=np.int32)
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool_)

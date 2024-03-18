@@ -5,6 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+import torch
+import torch.nn.functional as F
+
 class Game(tk.Frame):
 
     def __init__(self):
@@ -81,17 +84,18 @@ class Game(tk.Frame):
             self.highest_tiles.append(0)
         elif self.score != 0:
             self.scores.append(self.score)
-            self.highest_tiles.append(max(self.state))
+            self.highest_tiles.append(self.matrix.max())
         
         self.score = 0
         self.prev_score = 0
         self.game_status = None
-        self.state = self.matrix.flatten()
+        #self.state = np.array(self.matrix.flatten(), type=np.float32)
+        self.state = self.encode_state(self.matrix)
         #observation = self.get_observation()
         
         self.update_line_plot()
         self.update_histogram_plot()
-        return np.array(self.state, dtype=np.float32)
+        return self.state
     
    
     def step(self, action):
@@ -110,15 +114,30 @@ class Game(tk.Frame):
 
         reward = 0
 
-        highest_tile = np.max(self.matrix)
-        if highest_tile not in [self.matrix[0][0], self.matrix[0][3], self.matrix[3][0], self.matrix[0][3]]:
-            reward -= 100
-        else:
-            #reward += self.score - self.prev_score
-            reward += 100
+        # highest_tile = np.max(self.matrix)
+        # if highest_tile not in [self.matrix[0][0], self.matrix[0][3], self.matrix[3][0], self.matrix[0][3]]:
+        #     reward -= 100
+        # else:
+        #     #reward += self.score - self.prev_score
+        #     reward += 100
+        
+        # higher_tiles = np.array([64, 128, 256, 512])
+        # corner_tiles  = np.array([self.matrix[0][0], self.matrix[0][3], self.matrix[3][0], self.matrix[0][3]])
+        # if not np.isin(higher_tiles, corner_tiles).any():
+        #     reward -= 100
+        reward += self.score - self.prev_score
+        #state = np.array(self.state, dtype=np.float32)
+        self.state = self.encode_state(self.matrix)
+        return self.state, reward, terminated, self.score
 
-        return np.array(self.state, dtype=np.float32), reward, terminated, self.score
 
+    # FOR CNN IMPLEMENTATION
+    def encode_state(self, board):
+        board_flat = [0 if e == 0 else int(np.log2(e)) for e in board.flatten()]
+        board_flat = torch.LongTensor(board_flat)
+        board_flat = F.one_hot(board_flat, num_classes=16).float().flatten()
+        board_flat = board_flat.reshape(1, 4, 4, 16).permute(0, 3, 1, 2)
+        return board_flat
 
     def get_color(self, val):
         return self.NUM_COLORS[val] if val in self.NUM_COLORS else 'tan'
@@ -153,7 +172,7 @@ class Game(tk.Frame):
         self.score_label.grid(row=1)
 
         if self.show_plot:
-            self.fig, self.ax = plt.subplots(2, figsize=(3, 4))
+            self.fig, self.ax = plt.subplots(2, figsize=(5, 6))
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
             self.canvas_widget = self.canvas.get_tk_widget()
             self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=20, pady=20)
@@ -165,19 +184,23 @@ class Game(tk.Frame):
     def update_line_plot(self):
         self.ax[0].clear()
         self.ax[0].plot(self.scores)
-        self.ax[0].set_title('Game scores over episodes', fontsize=6)
+        self.ax[0].set_title('Game scores over episodes', fontsize=10)
         #self.ax[0].set_xlabel('episode', fontsize=5)
-        self.ax[0].set_ylabel('game score', fontsize=5)
-        self.ax[0].tick_params(axis='both', labelsize=3)
+        self.ax[0].set_ylabel('game score', fontsize=8)
+        self.ax[0].tick_params(axis='both', labelsize=6)
         self.canvas.draw()
 
     def update_histogram_plot(self):
         self.ax[1].clear()
-        self.ax[1].hist(self.highest_tiles, color='blue')
-        self.ax[1].set_title('Highest Tile Distribution', fontsize=6)
-        #self.ax[1].set_xlabel('Score', fontsize=5)
-        self.ax[1].set_ylabel('Count', fontsize=5)
-        self.ax[1].tick_params(axis='both', labelsize=3)
+        unique_tiles, counts = np.unique(self.highest_tiles, return_counts=True)
+        bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+        counts_dict = dict(zip(unique_tiles,counts))
+        self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
+        self.ax[1].set_xlabel('Highest Tile', fontsize=8)
+        self.ax[1].set_ylabel('Count', fontsize=8)
+        self.ax[1].tick_params(axis='both', labelsize=6)
+
         self.canvas.draw()
 
 
@@ -193,7 +216,8 @@ class Game(tk.Frame):
                     fill_position += 1
                     ret = True
         self.matrix = new_matrix
-        self.state = self.matrix.flatten()
+        #self.state = self.matrix.flatten()
+        self.state = self.encode_state(self.matrix)
         return ret
 
     def combine(self):
@@ -210,7 +234,8 @@ class Game(tk.Frame):
                     self.matrix[i][j+1] = 0
                     self.score += self.matrix[i][j]
                     ret = True
-        self.state = self.matrix.flatten()
+        #self.state = self.matrix.flatten()
+        self.state = self.encode_state(self.matrix)
         return ret
 
     def reverse(self):
@@ -226,8 +251,8 @@ class Game(tk.Frame):
             row = ind//4
             col = ind%4
             self.matrix[row][col] = np.random.choice([2,4],p=[0.9,0.1])
-        self.state = self.matrix.flatten()
-
+        #self.state = self.matrix.flatten()
+        self.state = self.encode_state(self.matrix)
 
     def update_GUI(self):
         for i in range(4):
