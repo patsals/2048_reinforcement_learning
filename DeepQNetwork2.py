@@ -15,6 +15,7 @@ class ConvBlock(nn.Module):
         self.conv4 = nn.Conv2d(input_dim, d, 4, padding='same')
 
     def forward(self, x):
+        x = x.to('cuda:0')
         output1 = self.conv1(x)
         output2 = self.conv2(x)
         output3 = self.conv3(x)
@@ -36,6 +37,7 @@ class DeepQNetwork(nn.Module):
         self.loss = nn.MSELoss()
     
     def forward(self, x):
+        x = x.to('cuda:0')
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -59,7 +61,7 @@ class Agent():
 
         self.action_space = [i for i in range(n_actions)]
         self.mem_counter = 0 
-        self.Q_eval = DeepQNetwork(self.lr)
+        self.Q_eval = DeepQNetwork(self.lr).to('cuda:0')
 
         self.state_memory = torch.zeros((self.mem_size, *input_dims), dtype=torch.float32)
         self.new_state_memory = torch.zeros((self.mem_size, *input_dims), dtype=torch.float32)
@@ -79,7 +81,7 @@ class Agent():
 
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
-            state = torch.tensor([observation]).to(self.Q_eval.device)
+            state = torch.tensor(observation).to('cuda:0')
             actions = self.Q_eval.forward(state)
             action = torch.argmax(actions).item()
         else:
