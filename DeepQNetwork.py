@@ -56,7 +56,7 @@ class Agent():
         self.new_state_memory = np.zeros(
             (self.mem_size, *input_dims), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
-        self.reward_memory = np.zeros(self.mem_size, dtype=np.int32)
+        self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool_)
 
     def store_transition(self, state, action, reward, state_new, done):
@@ -84,16 +84,18 @@ class Agent():
 
         return action
 
-    def learn(self):
+    def learn(self, num_last_game_moves):
         if self.mem_counter < self.batch_size:
             return
 
         self.Q_eval.optimizer.zero_grad()
 
         max_mem = min(self.mem_counter, self.mem_size)
-        batch = np.random.choice(max_mem, self.batch_size, replace=False)
-
-        batch_index = np.arange(self.batch_size, dtype=np.int32)
+        # batch = np.random.choice(max_mem, self.batch_size, replace=False)
+        batch = np.arange(max_mem - num_last_game_moves,
+                          max_mem)
+        #batch_index = np.arange(self.batch_size, dtype=np.int32)
+        batch_index = np.arange(num_last_game_moves, dtype=np.int32)
         state_batch = torch.tensor(self.state_memory[batch]).to(self.device)
         new_state_batch = torch.tensor(
             self.new_state_memory[batch]).to(self.device)
@@ -106,7 +108,8 @@ class Agent():
         q_next = self.Q_eval.forward(new_state_batch)
         q_next = torch.clone(q_next)
         q_next[terminal_batch] = 0.0
-        q_target = reward_batch + self.gamma * torch.max(q_next, dim=1)[0]
+        q_target = reward_batch + \
+            self.gamma * torch.max(q_next, dim=1)[0]
 
         loss = self.Q_eval.loss(q_target, q_eval).to(self.device)
         loss.backward()
@@ -118,6 +121,8 @@ class Agent():
     def update_epsilon(self, prev_score, curr_score):
 
         if curr_score > prev_score:
-            self.epsilon = self.epsilon - self.eps_chg if self.epsilon > self.eps_min else self.eps_min
+            self.epsilon = self.epsilon - \
+                self.eps_chg if self.epsilon > self.eps_min else self.eps_min
         else:
-            self.epsilon = self.epsilon + self.eps_chg if self.epsilon < self.eps_max else self.eps_max
+            self.epsilon = self.epsilon + \
+                self.eps_chg if self.epsilon < self.eps_max else self.eps_max
