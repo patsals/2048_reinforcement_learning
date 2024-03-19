@@ -15,34 +15,40 @@ def train(game):
     for i in range(n_games):
         score = 0
         no_motion_ctr = 0
+        num_moves = 0
         done = False
         observation = game.reset()
         while not done:
-            greedy_action, min_action = simulate(observation, 7, 50)
+            greedy_action, min_action = simulate(observation, 9, 50)
             
-            if (no_motion_ctr >= 10): # 10 is a random var i chose
+            if (no_motion_ctr >= 3): # 3 is a random var i chose
                 action = min_action
                 no_motion_ctr = 0
             else:
                 action = greedy_action
 
             observation_new, reward, done, game_score = game.step(action)
+            num_moves += 1
             score += reward
             running_avg_reward = total_reward / (i + 1)
-            agent.store_transition(observation, action, (reward - running_avg_reward), observation_new, done)
+            # log_reward = 0 if (reward == 0) else np.log2(reward)
+            # log_running_avg_reward = 0 if (running_avg_reward == 0) else np.log2(running_avg_reward)
+            agent.store_transition(observation, action, (reward - running_avg_reward) / num_moves, observation_new, done)
             # agent.update_epsilon(game.prev_score, game.score)
             observation = observation_new
 
             if (game.prev_score == game.score):
                 no_motion_ctr += 1
-        
-        total_reward += reward
-        agent.learn()
+            else:
+                no_motion_ctr = 0
+
+        total_reward += ((reward - running_avg_reward) / num_moves)
+        agent.learn(num_moves)
         game_scores.append(game_score)
         if i % 20 == 0:
-            print(f'episode {i} | total reward score: {score} | game_score: {game_score}')
+            print(f'episode {i} | total reward score: {total_reward} | game_score: {game_score}')
 
-        torch.save(agent.Q_eval, 'latest_model_running_avg_loss.pt')
+        torch.save(agent.Q_eval, 'latest_model_log_2.pt')
 
 
 def simulate(observation, num_simulations, num_steps_ahead):
