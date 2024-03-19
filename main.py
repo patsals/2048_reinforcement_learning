@@ -1,5 +1,5 @@
 from RL_game_2048 import Game
-from DeepQNetwork2 import Agent
+from DeepQNetwork import Agent
 from util import plot_game_scores
 
 from threading import Thread
@@ -27,9 +27,9 @@ def train(game):
 
 if __name__ == '__main__':
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
-                eps_end=0.01, input_dims=[16, 4, 4], lr=0.01)
+                eps_end=0.01, input_dims=[16], lr=0.01)
 
-    n_games = 1000
+    n_games = 250
     game = Game()
 
     train_thread = Thread(target=lambda : train(game))

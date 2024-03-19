@@ -5,9 +5,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
-class DeepQNetwork(nn.Module):
+class DeepQNetworkLinear(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
-        super(DeepQNetwork, self).__init__()
+        super(DeepQNetworkLinear, self).__init__()
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -33,9 +33,49 @@ class DeepQNetwork(nn.Module):
         return actions 
     
 
+class ConvBlock(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(ConvBlock, self).__init__()
+        d = output_dim // 4
+        self.conv1 = nn.Conv2d(input_dim, d, 1, padding='same')
+        self.conv2 = nn.Conv2d(input_dim, d, 2, padding='same')
+        self.conv3 = nn.Conv2d(input_dim, d, 3, padding='same')
+        self.conv4 = nn.Conv2d(input_dim, d, 4, padding='same')
+
+    def forward(self, x):
+        output1 = self.conv1(x)
+        output2 = self.conv2(x)
+        output3 = self.conv3(x)
+        output4 = self.conv4(x)
+        return torch.cat((output1, output2, output3, output4), dim=1)
+
+
+class DeepQNetworkCNN(nn.Module):
+    def __init__(self, lr):
+        super(DeepQNetworkCNN, self).__init__()
+        self.conv1 = ConvBlock(16, 2048)
+        self.conv2 = ConvBlock(2048, 2048)
+        self.conv3 = ConvBlock(2048, 2048)
+        self.dense1 = nn.Linear(2048 * 16, 1024)
+        self.dense6 = nn.Linear(1024, 4)
+
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        self.loss = nn.MSELoss()
+    
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = nn.Flatten()(x)
+        x = F.dropout(self.dense1(x))
+        return self.dense6(x)
+    
+
 class Agent():
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, 
-                 max_mem_size=100_000, eps_end=0.01, eps_dec=5e-4):
+                 max_mem_size=100_000, eps_end=0.01, eps_dec=5e-4, linear_model=True):
         self.gamma = gamma
         self.epsilon = epsilon
         self.lr = lr
@@ -48,7 +88,12 @@ class Agent():
 
         self.action_space = [i for i in range(n_actions)]
         self.mem_counter = 0 
-        self.Q_eval = DeepQNetwork(self.lr, n_actions=n_actions, input_dims=input_dims,
+
+        if linear_model:
+            self.Q_eval = DeepQNetworkLinear(self.lr, n_actions=n_actions, input_dims=input_dims,
+                                  fc1_dims=256, fc2_dims=256)
+        else:
+            self.Q_eval = DeepQNetworkCNN(self.lr, n_actions=n_actions, input_dims=input_dims,
                                   fc1_dims=256, fc2_dims=256)
 
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
