@@ -156,7 +156,7 @@ class Game(tk.Frame):
         self.score_label.grid(row=1)
 
         if self.show_plot:
-            self.fig, self.ax = plt.subplots(3, figsize=(4, 7))
+            self.fig, self.ax = plt.subplots(2, figsize=(4, 7))
             self.fig.subplots_adjust(hspace=0.8, wspace=0.3)
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
             self.canvas_widget = self.canvas.get_tk_widget()
@@ -164,7 +164,7 @@ class Game(tk.Frame):
 
             self.update_line_plot()
             self.update_histogram_plot()
-            
+
 
     def update_line_plot(self):
         self.ax[0].clear()
@@ -173,27 +173,21 @@ class Game(tk.Frame):
         #self.ax[0].set_xlabel('episode', fontsize=5)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
-        
-        self.ax[1].clear()
-        self.ax[1].plot(self.rewards, color='red')
-        self.ax[1].set_title('Model reward over episodes', fontsize=10)
-        self.ax[1].set_ylabel('reward', fontsize=8)
-        self.ax[1].tick_params(axis='both', labelsize=6)
 
         self.canvas.draw()
 
     def update_histogram_plot(self):
-        self.ax[2].clear()
-        unique_tiles, counts = np.unique(self.highest_tiles, return_counts=True)
+        self.ax[1].clear()
+        unique_tiles, counts = np.unique(self.highest_tiles[1:], return_counts=True)
         bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
         counts_dict = dict(zip(unique_tiles,counts))
-        self.ax[2].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
-        self.ax[2].set_title('Highest Tile Distribution', fontsize=10)
-        self.ax[2].set_xlabel('Highest Tile', fontsize=8)
-        self.ax[2].set_ylabel('Count', fontsize=8)
-        self.ax[2].tick_params(axis='both', labelsize=6)
+        self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
+        self.ax[1].set_xlabel('Highest Tile', fontsize=8)
+        self.ax[1].set_ylabel('Count', fontsize=8)
+        self.ax[1].tick_params(axis='both', labelsize=6)
 
-        self.canvas.draw()
+        self.canvas.draw() 
 
 
 
