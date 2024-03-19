@@ -169,7 +169,7 @@ class Game(tk.Frame):
     def update_line_plot(self):
         self.ax[0].clear()
         self.ax[0].plot(self.scores)
-        self.ax[0].set_title('Game scores over episodes', fontsize=6)
+        self.ax[0].set_title('Game scores over episodes', fontsize=10)
         #self.ax[0].set_xlabel('episode', fontsize=5)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
