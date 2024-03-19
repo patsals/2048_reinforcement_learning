@@ -160,7 +160,7 @@ class Game(tk.Frame):
             self.fig.subplots_adjust(hspace=0.8, wspace=0.3)
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
             self.canvas_widget = self.canvas.get_tk_widget()
-            self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=50, pady=50)
+            self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=20, pady=20)
 
             self.update_line_plot()
             self.update_histogram_plot()
@@ -169,7 +169,7 @@ class Game(tk.Frame):
     def update_line_plot(self):
         self.ax[0].clear()
         self.ax[0].plot(self.scores)
-        self.ax[0].set_title('Game scores over episodes', fontsize=10)
+        self.ax[0].set_title('Game scores over episodes', fontsize=6)
         #self.ax[0].set_xlabel('episode', fontsize=5)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
