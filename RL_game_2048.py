@@ -53,6 +53,7 @@ class Game(tk.Frame):
         self.prev_highest_tile = 2
         self.ep_reward = 0
         self.plot_flag = False
+        self.num_combined = 0
 
         self.make_GUI()
         self.reset()
@@ -122,14 +123,18 @@ class Game(tk.Frame):
         reward = 0
 
         highest_tile = np.max(self.matrix)
-        reward += (self.num_moves-6)*2
         if (highest_tile > self.prev_highest_tile):
-            reward += highest_tile
+            reward += 5
+        
+        reward += (self.num_combined-1)
 
         self.num_moves = 0
+        self.num_combined = 0
         self.prev_highest_tile = highest_tile
 
         self.ep_reward += reward
+
+        # print(reward)
 
         return np.array(self.state, dtype=np.float32), reward, terminated, self.score
 
@@ -211,9 +216,10 @@ class Game(tk.Frame):
             for j in range(4):
                 if self.matrix[i][j] != 0:
                     new_matrix[i][fill_position] = self.matrix[i][j]
+                    if j > fill_position:
+                        ret = True
+                        self.num_moves += 1
                     fill_position += 1
-                    ret = True
-                    self.num_moves += 1
         self.matrix = new_matrix
         self.state = self.matrix.flatten()
         return ret
@@ -233,6 +239,7 @@ class Game(tk.Frame):
                     self.score += self.matrix[i][j]
                     ret = True
                     self.num_moves += 1
+                    self.num_combined += 1
         self.state = self.matrix.flatten()
         return ret
 

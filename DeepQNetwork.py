@@ -17,13 +17,17 @@ class DeepQNetwork(nn.Module):
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
 
+        nn.init.xavier_normal_(self.fc1.weight)
+        nn.init.xavier_normal_(self.fc2.weight)
+        nn.init.xavier_normal_(self.fc3.weight)
+
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
+        self.loss = nn.CrossEntropyLoss()
 
     def forward(self, state):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        actions = self.fc3(x)
+        actions = F.softmax(self.fc3(x))
 
         return actions
     
@@ -51,7 +55,7 @@ class Agent():
 
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
-        self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
+        self.action_memory = np.zeros((self.mem_size, n_actions), dtype=np.int32)
         self.reward_memory = np.zeros(self.mem_size, dtype=np.int32)
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool_)
 
@@ -60,7 +64,7 @@ class Agent():
         self.state_memory[index] = state 
         self.new_state_memory[index] = state_new
         self.reward_memory[index] = reward 
-        self.action_memory[index] = action 
+        self.action_memory[index][action] = 1
         self.terminal_memory[index] = done
 
         self.mem_counter += 1
@@ -69,41 +73,45 @@ class Agent():
         if np.random.random() > self.epsilon:
             state = torch.tensor([observation]).to(self.device)
             with torch.no_grad(): actions = self.Q_eval.forward(state)
-            amin = torch.min(actions).item()
-            amax = torch.max(actions).item()
-            p = (actions - amin)/(amax - amin)
-            action = torch.arange(actions.size(dim=-1)).to(self.device)[p.multinomial(num_samples=1).item()].item()
+            action = torch.arange(actions.size(dim=-1)).to(self.device)[actions.multinomial(num_samples=1).item()].item()
         else:
             action = np.random.choice(self.action_space)
 
         return action
     
 
-    def learn(self):
-        if self.mem_counter < self.batch_size:
-            return
+    def learn(self, state, action, reward):
+        # if self.mem_counter < self.batch_size:
+        #     return
         
+        self.Q_eval.requires_grad_(True)
         self.Q_eval.optimizer.zero_grad()
 
-        max_mem = min(self.mem_counter, self.mem_size)
-        batch = np.random.choice(max_mem, self.batch_size, replace=False)
+        # max_mem = min(self.mem_counter, self.mem_size)
+        # batch = np.arange(num_moves)
 
-        batch_index = np.arange(self.batch_size, dtype=np.int32)
-        state_batch = torch.tensor(self.state_memory[batch]).to(self.device)
-        new_state_batch = torch.tensor(self.new_state_memory[batch]).to(self.device)
-        reward_batch = torch.tensor(self.reward_memory[batch]).to(self.device)
-        terminal_batch = torch.tensor(self.terminal_memory[batch]).to(self.device)
+        # batch_index = np.arange(self.batch_size, dtype=np.int32)
+        # state_batch = torch.tensor(self.state_memory[batch]).to(self.device)
+        # new_state_batch = torch.tensor(self.new_state_memory[batch]).to(self.device)
+        # reward_batch = torch.tensor(self.reward_memory[batch]).to(self.device)
+        # terminal_batch = torch.tensor(self.terminal_memory[batch]).to(self.device)
         
-        action_batch = self.action_memory[batch]
-        q_eval = self.Q_eval.forward(state_batch)[batch_index, action_batch]
-        q_next = self.Q_eval.forward(new_state_batch)
-        q_next = torch.clone(q_next)
-        q_next[terminal_batch] = 0.0
-        q_target = reward_batch + self.gamma * torch.max(q_next, dim=1)[0]
+        # action_batch = torch.tensor(self.action_memory[batch], dtype=torch.float32).to(self.device)
+        state_t = torch.tensor(state).to(self.device)
+        q_eval = self.Q_eval.forward(state_t)
 
-        loss = self.Q_eval.loss(q_target, q_eval).to(self.device)
+        #with torch.no_grad(): print(f'weights: {self.Q_eval.fc3.weight.cpu().numpy()}, out: {q_eval.cpu().numpy()}, reward: {reward}')
+
+        action_vec = torch.zeros(self.n_actions).to(self.device)
+        action_vec[action] = 1
+
+        loss = reward*self.Q_eval.loss(q_eval, action_vec)
         loss.backward()
         self.Q_eval.optimizer.step()
+
+        self.Q_eval.requires_grad_(False)
+
+        self.mem_counter = 0
 
         self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_end else self.eps_end
 
