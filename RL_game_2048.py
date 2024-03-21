@@ -49,11 +49,19 @@ class Game_GUI(tk.Frame):
 
         self.show_plot = True
         self.scores = []
+        self.rewards = []
         self.highest_tiles = []
         self.rewards = []
 
+        self.num_moves = 0
+        self.prev_highest_tile = 2
+        self.ep_reward = 0
+        self.plot_flag = False
+
         self.make_GUI()
         self.reset()
+
+        self.plot_flag = True
 
 
     # def get_observation(self):
@@ -85,7 +93,10 @@ class Game_GUI(tk.Frame):
             self.scores.append(0)
         elif self.score != 0:
             self.scores.append(self.score)
-            
+            self.highest_tiles.append(max(self.state))
+        if (self.plot_flag):
+            self.rewards.append(self.ep_reward)
+        self.ep_reward = 0
         
         self.score = 0
         self.prev_score = 0
@@ -114,7 +125,19 @@ class Game_GUI(tk.Frame):
 
         reward = 0
 
+<<<<<<< HEAD
         reward += self.score - self.prev_score
+=======
+        highest_tile = np.max(self.matrix)
+        reward += (self.num_moves-6)*2
+        if (highest_tile > self.prev_highest_tile):
+            reward += highest_tile
+
+        self.num_moves = 0
+        self.prev_highest_tile = highest_tile
+
+        self.ep_reward += reward
+>>>>>>> f2da297773793b9dba633301ea8923b34528e4f2
 
         self.state = np.array(self.state, dtype=np.float32) # for Linear
 
@@ -163,8 +186,12 @@ class Game_GUI(tk.Frame):
         self.score_label.grid(row=1)
 
         if self.show_plot:
+<<<<<<< HEAD
             self.fig, self.ax = plt.subplots(2, figsize=(4, 7))
             self.fig.subplots_adjust(hspace=0.8, wspace=0.3)
+=======
+            self.fig, self.ax = plt.subplots(3, figsize=(3, 5))
+>>>>>>> f2da297773793b9dba633301ea8923b34528e4f2
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
             self.canvas_widget = self.canvas.get_tk_widget()
             self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=50, pady=50)
@@ -178,6 +205,7 @@ class Game_GUI(tk.Frame):
         self.ax[0].plot(self.scores)
         self.ax[0].set_title('Game scores over episodes', fontsize=10)
         #self.ax[0].set_xlabel('episode', fontsize=5)
+<<<<<<< HEAD
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
         
@@ -186,10 +214,21 @@ class Game_GUI(tk.Frame):
         # self.ax[1].set_title('Model reward over episodes', fontsize=10)
         # self.ax[1].set_ylabel('reward', fontsize=8)
         # self.ax[1].tick_params(axis='both', labelsize=6)
+=======
+        self.ax[0].set_ylabel('game score', fontsize=5)
+        self.ax[0].tick_params(axis='both', labelsize=3)
+        
+        self.ax[1].clear()
+        self.ax[1].plot(self.rewards, color='red')
+        self.ax[1].set_title('Model reward over episodes', fontsize=6)
+        self.ax[1].set_ylabel('reward', fontsize=5)
+        self.ax[1].tick_params(axis='both', labelsize=3)
+>>>>>>> f2da297773793b9dba633301ea8923b34528e4f2
 
         self.canvas.draw()
 
     def update_histogram_plot(self):
+<<<<<<< HEAD
         self.ax[1].clear()
         unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
         bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
@@ -200,6 +239,14 @@ class Game_GUI(tk.Frame):
         self.ax[1].set_ylabel('Count', fontsize=8)
         self.ax[1].tick_params(axis='both', labelsize=6)
 
+=======
+        self.ax[2].clear()
+        self.ax[2].hist(self.highest_tiles, color='blue')
+        self.ax[2].set_title('Highest Tile Distribution', fontsize=6)
+        #self.ax[2].set_xlabel('Score', fontsize=5)
+        self.ax[2].set_ylabel('Count', fontsize=5)
+        self.ax[2].tick_params(axis='both', labelsize=3)
+>>>>>>> f2da297773793b9dba633301ea8923b34528e4f2
         self.canvas.draw()
 
 
@@ -214,6 +261,7 @@ class Game_GUI(tk.Frame):
                     new_matrix[i][fill_position] = self.matrix[i][j]
                     fill_position += 1
                     ret = True
+                    self.num_moves += 1
         self.matrix = new_matrix
         self.state = self.matrix.flatten() # for Linear
 
@@ -234,9 +282,14 @@ class Game_GUI(tk.Frame):
                     self.matrix[i][j+1] = 0
                     self.score += self.matrix[i][j]
                     ret = True
+<<<<<<< HEAD
         self.state = self.matrix.flatten() # for Linear
 
         #self.state = self.encode_state(self.matrix) # for CNN
+=======
+                    self.num_moves += 1
+        self.state = self.matrix.flatten()
+>>>>>>> f2da297773793b9dba633301ea8923b34528e4f2
         return ret
 
     def reverse(self):
