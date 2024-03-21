@@ -21,10 +21,16 @@ def plot_highest_tiles(tiles):
     
     percentages = [counts_dict.get(tile, 0)/len(tiles) * 100 for tile in bins]
 
-    plt.bar(np.array(bins).astype(str), percentages, color=colors)
+    bars = plt.bar(np.array(bins).astype(str), percentages, color=colors)
     plt.title('Highest Tile Distribution', fontsize=10)
     plt.xlabel('Highest Tile', fontsize=8)
     plt.ylabel('Percentage', fontsize=8)
     plt.xticks(rotation=45)  
     plt.tick_params(axis='both', labelsize=6)
+
+    for bar in bars:
+        yval = bar.get_height()
+        if yval > 0:
+            plt.text(bar.get_x() + bar.get_width()/2.0, yval, f'{yval:.2f}%', ha='center', va='bottom', fontsize=6)
+
     plt.savefig('plots/highest_tiles.png')

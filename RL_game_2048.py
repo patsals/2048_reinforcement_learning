@@ -53,6 +53,7 @@ class Game_GUI(tk.Frame):
         self.highest_tiles = []
         self.rewards = []
 
+        self.num_games = 0
         self.num_moves = 0
         self.prev_highest_tile = 2
         self.ep_reward = 0
@@ -62,6 +63,8 @@ class Game_GUI(tk.Frame):
         self.reset()
 
         self.plot_flag = True
+
+        
 
 
     # def get_observation(self):
@@ -110,6 +113,7 @@ class Game_GUI(tk.Frame):
         
         self.update_line_plot()
         self.update_histogram_plot()
+        self.num_games += 1
         return self.state
     
    
@@ -138,7 +142,7 @@ class Game_GUI(tk.Frame):
         self.state = np.array(self.state, dtype=np.float32) # for Linear
 
         #self.state = self.encode_state(self.matrix) # for CNN
-        return self.state, reward, terminated, self.score
+        return self.state, reward, terminated, self.score, self.matrix.max()
 
 
     # FOR CNN IMPLEMENTATION
@@ -188,36 +192,53 @@ class Game_GUI(tk.Frame):
             self.canvas_widget = self.canvas.get_tk_widget()
             self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=50, pady=50)
 
-            self.update_line_plot()
-            self.update_histogram_plot()
+            if self.num_games > 1:
+                self.update_line_plot()
+                self.update_histogram_plot()
             
 
     def update_line_plot(self):
         self.ax[0].clear()
-        self.ax[0].plot(self.scores)
+        self.ax[0].plot(self.scores[1:])
         self.ax[0].set_title('Game scores over episodes', fontsize=10)
         #self.ax[0].set_xlabel('episode', fontsize=5)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
         
-        # self.ax[1].clear()
-        # self.ax[1].plot(self.rewards, color='red')
-        # self.ax[1].set_title('Model reward over episodes', fontsize=10)
-        # self.ax[1].set_ylabel('reward', fontsize=8)
-        # self.ax[1].tick_params(axis='both', labelsize=6)
 
         self.canvas.draw()
 
     def update_histogram_plot(self):
+        # self.ax[1].clear()
+        # unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
+        # bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+        # counts_dict = dict(zip(unique_tiles,counts))
+        # self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        # self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
+        # self.ax[1].set_xlabel('Highest Tile', fontsize=8)
+        # self.ax[1].set_ylabel('Count', fontsize=8)
+        # self.ax[1].tick_params(axis='both', labelsize=6)
         self.ax[1].clear()
         unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
         bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-        counts_dict = dict(zip(unique_tiles,counts))
-        self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        counts_dict = dict(zip(unique_tiles, counts))
+        
+        colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink', 'lightblue', 'grey', 'black']
+        if len(colors) < len(bins):
+            colors += colors * (len(bins) // len(colors)) + colors[:len(bins) % len(colors)]
+        
+        percentages = [counts_dict.get(tile, 0)/len(self.highest_tiles) * 100 for tile in bins]
+
+        bars = self.ax[1].bar(np.array(bins).astype(str), percentages, color=colors)
         self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
         self.ax[1].set_xlabel('Highest Tile', fontsize=8)
-        self.ax[1].set_ylabel('Count', fontsize=8)
-        self.ax[1].tick_params(axis='both', labelsize=6)
+        self.ax[1].set_ylabel('Percentage', fontsize=8)
+        self.ax[1].tick_params(axis='both', labelsize=6, rotation=45)
+
+        for bar in bars:
+            yval = bar.get_height()
+            if yval > 0:
+                plt.text(bar.get_x() + bar.get_width()/2.0, yval, f'{yval:.2f}%', ha='center', va='bottom', fontsize=6)
 
         self.canvas.draw()
 
@@ -242,10 +263,7 @@ class Game_GUI(tk.Frame):
 
     def combine(self):
         ret = False
-        # diff_mat = np.hstack((self.matrix[:,:3] - self.matrix[:,1:], np.ones((4,1),dtype=int)))
-        # self.matrix[diff_mat==0] *= 2
-        # self.matrix[np.roll(diff_mat,1,axis=1)==0] = 0
-        # self.score += sum(self.matrix[diff_mat==0])
+
         self.prev_score = self.score
         for i in range(4):
             for j in range(3):
@@ -344,24 +362,12 @@ class Game_GUI(tk.Frame):
     # check if game is over win/lose
     def game_over(self):
         if np.any(self.matrix==2048):
-            # game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
-            # game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
-            # tk.Label(
-            #     game_over_frame,
-            #     text='you win!'
-            # ).pack()
-            #print(f'game over| WON with score of {self.score}')
+      
             self.game_status = 'won'
             return True
 
         elif not np.any(self.matrix==0) and not self.vertical_move_exists() and not self.horizontal_move_exists():
-            # game_over_frame = tk.Frame(self.main_grid, borderwidth=2)
-            # game_over_frame.place(relx=0.5, rely=0.5, anchor='center')
-            # tk.Label(
-            #     game_over_frame,
-            #     text='game over!'
-            # ).pack()
-            #print(f'game over| LOST with score of {self.score}')
+    
             self.game_status = 'lost'
             return True
         
