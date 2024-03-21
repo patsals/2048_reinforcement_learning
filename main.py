@@ -1,4 +1,5 @@
-from RL_game_2048 import Game
+from RL_game_2048 import Game_GUI
+from RL_game_2048_matrix import Game
 from DeepQNetwork import Agent
 from util import plot_game_scores
 
@@ -6,8 +7,9 @@ from threading import Thread
 import time
 
 game_scores = []
+SHOW_GUI = False
 
-def train(game):
+def train(game, agent):
     for i in range(n_games):
         score = 0
         done = False
@@ -26,17 +28,21 @@ def train(game):
 
 
 if __name__ == '__main__':
+
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
                 eps_end=0.01, input_dims=[16], lr=0.01)
 
     n_games = 250
-    game = Game()
 
-    train_thread = Thread(target=lambda : train(game))
-    train_thread.start()
-    game.play()
-
-
-    train_thread.join()
-    game.terminate()
+    
+    if SHOW_GUI:
+        game = Game_GUI()
+        train_thread = Thread(target=lambda : train(game, agent))
+        train_thread.start()
+        game.play()
+        train_thread.join()
+        game.terminate()
+    else:
+        game = Game(show_board=False)
+        train(game, agent)
     plot_game_scores(game_scores)

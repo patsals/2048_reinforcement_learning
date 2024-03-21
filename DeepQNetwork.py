@@ -5,32 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
-class DeepQNetworkLinear(nn.Module):
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
-        super(DeepQNetworkLinear, self).__init__()
-        self.input_dims = input_dims
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.n_actions = n_actions
 
-        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
-        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.fc3 = nn.Linear(self.fc2_dims, self.fc2_dims)
-
-        self.fc4 = nn.Linear(self.fc2_dims, self.n_actions)
-
-        self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
-
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-    def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        actions = self.fc4(x)
-
-        return actions 
     
 
 class ConvBlock(nn.Module):
@@ -72,6 +47,32 @@ class DeepQNetworkCNN(nn.Module):
         x = F.dropout(self.dense1(x))
         return self.dense6(x)
     
+class DeepQNetworkLinear(nn.Module):
+    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
+        super(DeepQNetworkLinear, self).__init__()
+        self.input_dims = input_dims
+        self.fc1_dims = fc1_dims
+        self.fc2_dims = fc2_dims
+        self.n_actions = n_actions
+
+        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
+        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
+        self.fc3 = nn.Linear(self.fc2_dims, self.fc2_dims)
+
+        self.fc4 = nn.Linear(self.fc2_dims, self.n_actions)
+
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        self.loss = nn.MSELoss()
+
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        actions = self.fc4(x)
+
+        return actions 
 
 class Agent():
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, 
