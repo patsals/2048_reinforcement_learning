@@ -38,7 +38,8 @@ if __name__ == '__main__':
                 eps_end=0.01, input_dims=[16], lr=0.01)
     
     model = DeepQNetworkLinear(n_actions=4, input_dims=[16], lr=0.01, fc1_dims=256, fc2_dims=256)
-    model.load_state_dict(torch.load('best_linear_model.pth'))
+    model.load_state_dict(torch.load('best_linear_model.pth', 
+                                     map_location=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')))
     model.eval()  
 
     agent.Q_eval = model

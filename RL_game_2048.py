@@ -30,7 +30,7 @@ class Game_GUI(tk.Frame):
         }
 
         self.main_grid = tk.Frame(
-            self, bg='grey', bd=3, width=600, height=600
+            self, bg='grey', bd=3, width=600, height=600,
         )
 
         self.main_grid.grid(pady=(100,0))
@@ -175,15 +175,20 @@ class Game_GUI(tk.Frame):
             self.cells.append(row)
 
         score_frame = tk.Frame(self)
-        score_frame.place(relx=0.25, y=45, anchor='center')
+        score_frame.place(relx=0.28, y=45, anchor='center')
         tk.Label(
             score_frame,
             text='Score',
-            font=("Arial bold", 40)
+            font=("Arial bold", 40),
         ).grid(row=0)
+
+       
 
         self.score_label = tk.Label(score_frame, text='0', font=("Arial bold", 20))
         self.score_label.grid(row=1)
+
+        self.num_games_label = tk.Label(self.master, text='0', font=("Arial bold", 20))
+        self.num_games_label.place(x=10, y=60)
 
         if self.show_plot:
             self.fig, self.ax = plt.subplots(2, figsize=(4, 7))
@@ -201,7 +206,7 @@ class Game_GUI(tk.Frame):
         self.ax[0].clear()
         self.ax[0].plot(self.scores[1:])
         self.ax[0].set_title('Game scores over episodes', fontsize=10)
-        #self.ax[0].set_xlabel('episode', fontsize=5)
+        self.ax[0].set_xlabel('episode', fontsize=8)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
         
@@ -307,6 +312,7 @@ class Game_GUI(tk.Frame):
                     self.cells[i][j]['number'].configure(bg=color, text=str(cell_value))
 
         self.score_label.configure(text=self.score)
+        self.num_games_label.configure(text=f'Game: {self.num_games}')
         self.update_idletasks()
 
     def left(self, event):
