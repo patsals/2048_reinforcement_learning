@@ -9,8 +9,9 @@ import numpy as np
     
 
 class ConvBlock(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, device):
         super(ConvBlock, self).__init__()
+        self.device = device
         d = output_dim // 4
         self.conv1 = nn.Conv2d(input_dim, d, 1, padding='same')
         self.conv2 = nn.Conv2d(input_dim, d, 2, padding='same')
@@ -18,6 +19,7 @@ class ConvBlock(nn.Module):
         self.conv4 = nn.Conv2d(input_dim, d, 4, padding='same')
 
     def forward(self, x):
+        x = x.to(self.device)
         output1 = self.conv1(x)
         output2 = self.conv2(x)
         output3 = self.conv3(x)
@@ -26,11 +28,12 @@ class ConvBlock(nn.Module):
 
 
 class DeepQNetworkCNN(nn.Module):
-    def __init__(self, lr):
+    def __init__(self, lr, device):
         super(DeepQNetworkCNN, self).__init__()
-        self.conv1 = ConvBlock(16, 2048)
-        self.conv2 = ConvBlock(2048, 2048)
-        self.conv3 = ConvBlock(2048, 2048)
+        self.device = device
+        self.conv1 = ConvBlock(16, 2048, device)
+        self.conv2 = ConvBlock(2048, 2048, device)
+        self.conv3 = ConvBlock(2048, 2048, device)
         self.dense1 = nn.Linear(2048 * 16, 1024)
         self.dense6 = nn.Linear(1024, 4)
 
@@ -40,6 +43,7 @@ class DeepQNetworkCNN(nn.Module):
         self.loss = nn.MSELoss()
     
     def forward(self, x):
+        x = x.to(self.device)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -48,8 +52,9 @@ class DeepQNetworkCNN(nn.Module):
         return self.dense6(x)
     
 class DeepQNetworkLinear(nn.Module):
-    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
+    def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions, device):
         super(DeepQNetworkLinear, self).__init__()
+        self.device = device
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -65,6 +70,7 @@ class DeepQNetworkLinear(nn.Module):
         self.loss = nn.MSELoss()
 
     def forward(self, state):
+        state = state.to(self.device)
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
@@ -92,10 +98,10 @@ class Agent():
 
         if linear_model:
             self.Q_eval = DeepQNetworkLinear(self.lr, n_actions=n_actions, input_dims=input_dims,
-                                  fc1_dims=256, fc2_dims=256)
+                                  fc1_dims=256, fc2_dims=256, device=device)
         else:
             self.Q_eval = DeepQNetworkCNN(self.lr, n_actions=n_actions, input_dims=input_dims,
-                                  fc1_dims=256, fc2_dims=256)
+                                  fc1_dims=256, fc2_dims=256, device=device)
         
         self.Q_eval.to(device)
 
@@ -117,12 +123,9 @@ class Agent():
 
     def choose_action(self, observation):
         if np.random.random() > self.epsilon:
-            state = torch.tensor([observation]).to(self.device)
-            with torch.no_grad(): actions = self.Q_eval.forward(state)
-            amin = torch.min(actions).item()
-            amax = torch.max(actions).item()
-            p = (actions - amin)/(amax - amin)
-            action = torch.arange(actions.size(dim=-1)).to(self.device)[p.multinomial(num_samples=1).item()].item()
+            state = torch.tensor([observation]).to(self.Q_eval.device)
+            actions = self.Q_eval.forward(state)
+            action = torch.argmax(actions).item()
         else:
             action = np.random.choice(self.action_space)
 

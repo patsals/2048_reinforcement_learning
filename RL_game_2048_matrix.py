@@ -15,17 +15,19 @@ class Game():
         self.state = None
 
         self.show_plot = True
-        self.scores = []
-        self.highest_tiles = []
         self.rewards = []
         self.show_board = show_board
-
+        self.game_number = 0
         self.reset()
 
 
     
     def reset(self):
-        self.highest_tiles.append(self.matrix.max())
+        if self.show_board and self.game_number > 0:
+            print(f'game {self.game_number} | score: {self.score} , highest_tile: {self.matrix.max()}')
+            print(self.matrix)
+
+        #self.highest_tiles.append(self.matrix.max())
         self.matrix = np.zeros((4,4),dtype=int)
         
 
@@ -37,10 +39,10 @@ class Game():
         self.matrix[row[1]][col[1]] = 2
 
 
-        if len(self.scores) == 0:
-            self.scores.append(0)
-        elif self.score != 0:
-            self.scores.append(self.score)
+        # if len(self.scores) == 0:
+        #     self.scores.append(0)
+        # elif self.score != 0:
+        #     self.scores.append(self.score)
             
         
         self.score = 0
@@ -53,8 +55,7 @@ class Game():
         
         #self.update_line_plot()
         #self.update_histogram_plot()
-        if self.show_board:
-            print(self.matrix)
+        self.game_number += 1
         return self.state
     
    
@@ -62,8 +63,6 @@ class Game():
         movement = self.action_to_movement[action]
         movement(None)
 
-        if self.show_board:
-            print(self.matrix)
         ##################
         #### REWARDS #####
         ##################
@@ -77,7 +76,7 @@ class Game():
         self.state = np.array(self.state, dtype=np.float32) # for Linear
 
         #self.state = self.encode_state(self.matrix) # for CNN
-        return self.state, reward, terminated, self.score
+        return self.state, reward, terminated, self.score, self.matrix.max()
 
 
     # FOR CNN IMPLEMENTATION
@@ -88,36 +87,6 @@ class Game():
         board_flat = board_flat.reshape(1, 4, 4, 16).permute(0, 3, 1, 2)
         return board_flat
 
-
-
-    def update_line_plot(self):
-        self.ax[0].clear()
-        self.ax[0].plot(self.scores)
-        self.ax[0].set_title('Game scores over episodes', fontsize=10)
-        #self.ax[0].set_xlabel('episode', fontsize=5)
-        self.ax[0].set_ylabel('game score', fontsize=8)
-        self.ax[0].tick_params(axis='both', labelsize=6)
-        
-        # self.ax[1].clear()
-        # self.ax[1].plot(self.rewards, color='red')
-        # self.ax[1].set_title('Model reward over episodes', fontsize=10)
-        # self.ax[1].set_ylabel('reward', fontsize=8)
-        # self.ax[1].tick_params(axis='both', labelsize=6)
-
-        self.canvas.draw()
-
-    def update_histogram_plot(self):
-        self.ax[1].clear()
-        unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
-        bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-        counts_dict = dict(zip(unique_tiles,counts))
-        self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
-        self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
-        self.ax[1].set_xlabel('Highest Tile', fontsize=8)
-        self.ax[1].set_ylabel('Count', fontsize=8)
-        self.ax[1].tick_params(axis='both', labelsize=6)
-
-        self.canvas.draw()
 
 
     def stack(self):
