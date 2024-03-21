@@ -47,6 +47,7 @@ class Game_GUI(tk.Frame):
         self.prev_highest_tile = 2
         self.ep_reward = 0
         self.plot_flag = False
+        self.num_games = 0
 
         if (argState is None):
             self.make_GUI()
@@ -93,6 +94,7 @@ class Game_GUI(tk.Frame):
         
         self.update_line_plot()
         self.update_histogram_plot()
+        self.num_games += 1
         return np.array(self.state, dtype=np.float32)
     
    
@@ -160,34 +162,57 @@ class Game_GUI(tk.Frame):
             self.fig.subplots_adjust(hspace=0.8, wspace=0.3)
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
             self.canvas_widget = self.canvas.get_tk_widget()
-            self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=20, pady=20)
+            self.canvas_widget.grid(row=0, column=5, rowspan=4, padx=50, pady=50)
 
-            self.update_line_plot()
-            self.update_histogram_plot()
-
+            if self.num_games > 1:
+                self.update_line_plot()
+                self.update_histogram_plot()
+            
 
     def update_line_plot(self):
         self.ax[0].clear()
-        self.ax[0].plot(self.scores)
+        self.ax[0].plot(self.scores[1:])
         self.ax[0].set_title('Game scores over episodes', fontsize=10)
-        #self.ax[0].set_xlabel('episode', fontsize=5)
+        self.ax[0].set_xlabel('episode', fontsize=8)
         self.ax[0].set_ylabel('game score', fontsize=8)
         self.ax[0].tick_params(axis='both', labelsize=6)
+        
 
         self.canvas.draw()
 
     def update_histogram_plot(self):
+        # self.ax[1].clear()
+        # unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
+        # bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+        # counts_dict = dict(zip(unique_tiles,counts))
+        # self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        # self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
+        # self.ax[1].set_xlabel('Highest Tile', fontsize=8)
+        # self.ax[1].set_ylabel('Count', fontsize=8)
+        # self.ax[1].tick_params(axis='both', labelsize=6)
         self.ax[1].clear()
-        unique_tiles, counts = np.unique(self.highest_tiles[1:], return_counts=True)
+        unique_tiles, counts = np.unique(self.highest_tiles[2:], return_counts=True)
         bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-        counts_dict = dict(zip(unique_tiles,counts))
-        self.ax[1].bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+        counts_dict = dict(zip(unique_tiles, counts))
+        
+        colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink', 'lightblue', 'grey', 'black']
+        if len(colors) < len(bins):
+            colors += colors * (len(bins) // len(colors)) + colors[:len(bins) % len(colors)]
+        
+        percentages = [counts_dict.get(tile, 0)/len(self.highest_tiles) * 100 for tile in bins]
+
+        bars = self.ax[1].bar(np.array(bins).astype(str), percentages, color=colors)
         self.ax[1].set_title('Highest Tile Distribution', fontsize=10)
         self.ax[1].set_xlabel('Highest Tile', fontsize=8)
-        self.ax[1].set_ylabel('Count', fontsize=8)
-        self.ax[1].tick_params(axis='both', labelsize=6)
+        self.ax[1].set_ylabel('Percentage', fontsize=8)
+        self.ax[1].tick_params(axis='both', labelsize=6, rotation=45)
 
-        self.canvas.draw() 
+        for bar in bars:
+            yval = bar.get_height()
+            if yval > 0:
+                plt.text(bar.get_x() + bar.get_width()/2.0, yval, f'{yval:.2f}%', ha='center', va='bottom', fontsize=6)
+
+        self.canvas.draw()
 
 
 
