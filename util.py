@@ -10,13 +10,21 @@ def plot_game_scores(scores):
     plt.savefig('plots/game_scores.png')
 
 def plot_highest_tiles(tiles):
-    plt.clf()
+    plt.clf()  
     unique_tiles, counts = np.unique(tiles, return_counts=True)
     bins = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-    counts_dict = dict(zip(unique_tiles,counts))
-    plt.bar(np.array(bins).astype(str), [counts_dict.get(tile, 0) for tile in bins], color='blue')
+    counts_dict = dict(zip(unique_tiles, counts))
+    
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink', 'lightblue', 'grey', 'black']
+    if len(colors) < len(bins):
+        colors += colors * (len(bins) // len(colors)) + colors[:len(bins) % len(colors)]
+    
+    percentages = [counts_dict.get(tile, 0)/len(tiles) * 100 for tile in bins]
+
+    plt.bar(np.array(bins).astype(str), percentages, color=colors)
     plt.title('Highest Tile Distribution', fontsize=10)
     plt.xlabel('Highest Tile', fontsize=8)
-    plt.ylabel('Count', fontsize=8)
+    plt.ylabel('Percentage', fontsize=8)
+    plt.xticks(rotation=45)  
     plt.tick_params(axis='both', labelsize=6)
     plt.savefig('plots/highest_tiles.png')

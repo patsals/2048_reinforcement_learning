@@ -1,11 +1,10 @@
 from RL_game_2048 import Game_GUI
 from RL_game_2048_matrix import Game
-from DeepQNetwork import Agent
+from DeepQNetwork import Agent, DeepQNetworkLinear
 from util import plot_game_scores, plot_highest_tiles
 import torch
 
 from threading import Thread
-import time
 
 game_scores = []
 highest_tiles = []
@@ -29,14 +28,17 @@ def train(game, agent):
             print(f'episode {i} | total reward score: {score} | average game_score: {sum(game_scores[-10:])/10}')
             plot_game_scores(game_scores)
             plot_highest_tiles(highest_tiles)
+            
+        if len(game_scores) > 1 and game_score > max(game_scores[:-1]):
+            torch.save(agent.Q_eval.state_dict(), 'best_linear_model.pth')
 
         
 if __name__ == '__main__':
 
     agent = Agent(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=4,
-                eps_end=0.01, input_dims=[16], lr=0.01, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'))
+                eps_end=0.01, input_dims=[16], lr=0.01)
 
-    n_games = 5000
+    n_games = 100_000
     game = Game()
 
     
@@ -48,6 +50,11 @@ if __name__ == '__main__':
         train_thread.join()
         game.terminate()
     else:
-        game = Game(show_board=True)
+        game = Game(show_board=False)
         train(game, agent)
+        
+    
+#     model = DeepQNetworkLinear(n_actions=4, input_dims=[16], lr=0.01, fc1_dims=256, fc2_dims=256)
+#     model.load_state_dict(torch.load('best_linear_model.pth'))
+#     model.eval()  
     
