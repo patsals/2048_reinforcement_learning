@@ -1,6 +1,7 @@
-from RL_game_2048 import Game
+from RL_game_2048 import Game_GUI
+from RL_game_2048_matrix import Game
 from DeepQNetwork import Agent
-from util import plot_game_scores
+from util import plot_game_scores, plot_highest_tiles
 import torch
 import os
 from threading import Thread
@@ -8,9 +9,12 @@ import numpy as np
 from sim_2048 import Sim
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
-game_scores = []
+SHOW_GUI = False
 
-def train(game):
+game_scores = []
+highest_tiles = []
+
+def train(game, agent):
     total_reward = 0
     for i in range(n_games):
         score = 0
@@ -20,14 +24,13 @@ def train(game):
         observation = game.reset()
         while not done:
             greedy_action, min_action = simulate(observation, 9, 50)
-            
             if (no_motion_ctr >= 3): # 3 is a random var i chose
                 action = min_action
                 no_motion_ctr = 0
             else:
                 action = greedy_action
 
-            observation_new, reward, done, game_score = game.step(action)
+            observation_new, reward, done, game_score, highest_tile = game.step(action)
             num_moves += 1
             score += reward
             running_avg_reward = total_reward / (i + 1)
@@ -45,10 +48,15 @@ def train(game):
         total_reward += ((reward - running_avg_reward) / num_moves)
         agent.learn(num_moves)
         game_scores.append(game_score)
-        if i % 20 == 0:
-            print(f'episode {i} | total reward score: {total_reward} | game_score: {game_score}')
+        highest_tiles.append(highest_tile)
+        if i % 10 == 0:
+            print(f'episode {i} | total reward score: {score} | average game_score: {sum(game_scores[-10:])/10}')
+            plot_game_scores(game_scores)
+            plot_highest_tiles(highest_tiles)
+            
+        if len(game_scores) > 1 and game_score > max(game_scores[:-1]):
+            torch.save(agent.Q_eval.state_dict(), 'best_MC_model.pth')
 
-        torch.save(agent.Q_eval, 'latest_model_log_2.pt')
 
 
 def simulate(observation, num_simulations, num_steps_ahead):
@@ -91,14 +99,15 @@ if __name__ == '__main__':
                 eps_min=0.01, eps_max=0.20, eps_chg=0.01, input_dims=[16], lr=0.03, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'))
 
     n_games = 5000
-    game = Game()
 
-    train_thread = Thread(target=lambda : train(game))
-    train_thread.start()
-    game.play()
-
-
-    train_thread.join()
-    game.terminate()
-    plot_game_scores(game_scores)
+    if SHOW_GUI:
+        game = Game_GUI()
+        train_thread = Thread(target=lambda : train(game, agent))
+        train_thread.start()
+        game.play()
+        train_thread.join()
+        game.terminate()
+    else:
+        game = Game(show_board=True)
+        train(game, agent)
     

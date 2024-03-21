@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-class Game(tk.Frame):
+class Game_GUI(tk.Frame):
 
     def __init__(self, argState=None):
         tk.Frame.__init__(self)
@@ -120,7 +120,7 @@ class Game(tk.Frame):
 
         # self.prev_matrix = self.matrix
 
-        return np.array(self.state, dtype=np.float32), reward, terminated, self.score
+        return np.array(self.state, dtype=np.float32), reward, terminated, self.score, self.matrix.max()
 
 
     def get_color(self, val):
