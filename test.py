@@ -9,6 +9,7 @@ from threading import Thread
 
 game_scores = []
 highest_tiles = []
+DEMO = False
 
 def play(game, agent):
     for i in range(n_games):
@@ -38,22 +39,25 @@ if __name__ == '__main__':
                 eps_end=0.01, input_dims=[16], lr=0.01)
     
     model = DeepQNetworkLinear(n_actions=4, input_dims=[16], lr=0.01, fc1_dims=256, fc2_dims=256)
-    model.load_state_dict(torch.load('best_linear_model.pth', 
+    model.load_state_dict(torch.load('5119_best_linear_model.pth', 
                                      map_location=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')))
     model.eval()  
 
     agent.Q_eval = model
 
-    agent
     n_games = 1_000
     
-    game = Game_GUI()
-    train_thread = Thread(target=lambda : play(game, agent))
+    if DEMO:
+        game = Game_GUI()
+        train_thread = Thread(target=lambda : play(game, agent))
 
-    train_thread.start()
-    game.play()
-    train_thread.join()
-    game.terminate()
+        train_thread.start()
+        game.play()
+        train_thread.join()
+        game.terminate()
+    else:
+        game = Game()
+        play(game, agent)
 
         
     

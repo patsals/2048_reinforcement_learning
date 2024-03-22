@@ -5,6 +5,7 @@ from util import plot_game_scores, plot_highest_tiles
 import torch
 
 from threading import Thread
+import random
 
 game_scores = []
 highest_tiles = []
@@ -16,11 +17,11 @@ def train(game, agent):
         done = False
         observation = game.reset()
         while not done:
-            action = agent.choose_action(observation)
+            action = random.randint(0,3)#agent.choose_action(observation)
             observation_new, reward, done, game_score, highest_tile = game.step(action)
             score += reward
-            agent.store_transition(observation, action, reward, observation_new, done)
-            agent.learn()
+            #agent.store_transition(observation, action, reward, observation_new, done)
+            #agent.learn()
             observation = observation_new
         game_scores.append(game_score)
         highest_tiles.append(highest_tile)
